@@ -1,0 +1,62 @@
+type CooldownPeriodUpdated @entity(immutable: true) {
+  id: Bytes!
+  oldCoolDownPeriod: BigInt! # uint256
+  newCooldownPeriod: BigInt! # uint256
+  blockNumber: BigInt!
+  blockTimestamp: BigInt!
+  transactionHash: Bytes!
+}
+
+type EnableRedeemUpdated @entity(immutable: true) {
+  id: Bytes!
+  oldAccess: Boolean! # bool
+  newAccess: Boolean! # bool
+  blockNumber: BigInt!
+  blockTimestamp: BigInt!
+  transactionHash: Bytes!
+}
+
+type OwnershipTransferred @entity(immutable: true) {
+  id: Bytes!
+  previousOwner: Bytes! # address
+  newOwner: Bytes! # address
+  blockNumber: BigInt!
+  blockTimestamp: BigInt!
+  transactionHash: Bytes!
+}
+
+type RewardWalletUpdated @entity(immutable: true) {
+  id: Bytes!
+  oldRewardWallet: Bytes! # address
+  newRewardWallet: Bytes! # address
+  blockNumber: BigInt!
+  blockTimestamp: BigInt!
+  transactionHash: Bytes!
+}
+
+type SignerUpdated @entity(immutable: true) {
+  id: Bytes!
+  oldSigner: Bytes! # address
+  newSigner: Bytes! # address
+  blockNumber: BigInt!
+  blockTimestamp: BigInt!
+  transactionHash: Bytes!
+}
+
+type TokensDeposited @entity(immutable: true) {
+  id: Bytes!
+  depositor: Bytes! # address
+  amount: BigInt! # uint256
+  blockNumber: BigInt!
+  blockTimestamp: BigInt!
+  transactionHash: Bytes!
+}
+
+type TokensRedeemed @entity(immutable: true) {
+  id: Bytes!
+  redeemer: Bytes! # address
+  amount: BigInt! # uint256
+  blockNumber: BigInt!
+  blockTimestamp: BigInt!
+  transactionHash: Bytes!
+}

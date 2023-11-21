@@ -16,15 +16,15 @@ module.exports = {
     ],
   },
   networks: {
-    // goerli: {
-    //   url: process.env.URL,
-    //   accounts: [process.env.PRIVATE_KEY],
-    // },
-    mainnet: {
-      url: process.env.URL_MAIN,
-      accounts: [process.env.PRIVATE_KEY_MAIN],
-      chainId: 1,
+    goerli: {
+      url: process.env.URL,
+      accounts: [process.env.PRIVATE_KEY],
     },
+    // mainnet: {
+    //   url: process.env.URL_MAIN,
+    //   accounts: [process.env.PRIVATE_KEY_MAIN],
+    //   chainId: 1,
+    // },
   },
   etherscan: {
     apiKey: process.env.API_KEY,

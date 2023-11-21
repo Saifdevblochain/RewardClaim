@@ -1,0 +1,42 @@
+specVersion: 0.0.5
+schema:
+  file: schema.graphql
+dataSources:
+  - kind: ethereum
+    name: TaskRewards
+    network: goerli
+    source:
+      address: "0x55ff85e9d562187411d6397813f8055aE9B88Efd"
+      abi: TaskRewards
+      startBlock: 10081951
+    mapping:
+      kind: ethereum/events
+      apiVersion: 0.0.7
+      language: wasm/assemblyscript
+      entities:
+        - CooldownPeriodUpdated
+        - EnableRedeemUpdated
+        - OwnershipTransferred
+        - RewardWalletUpdated
+        - SignerUpdated
+        - TokensDeposited
+        - TokensRedeemed
+      abis:
+        - name: TaskRewards
+          file: TaskRewards/abis/TaskRewards.json
+      eventHandlers:
+        - event: CooldownPeriodUpdated(uint256,uint256)
+          handler: handleCooldownPeriodUpdated
+        - event: EnableRedeemUpdated(bool,bool)
+          handler: handleEnableRedeemUpdated
+        - event: OwnershipTransferred(indexed address,indexed address)
+          handler: handleOwnershipTransferred
+        - event: RewardWalletUpdated(address,address)
+          handler: handleRewardWalletUpdated
+        - event: SignerUpdated(address,address)
+          handler: handleSignerUpdated
+        - event: TokensDeposited(indexed address,uint256)
+          handler: handleTokensDeposited
+        - event: TokensRedeemed(indexed address,uint256)
+          handler: handleTokensRedeemed
+      file: TaskRewards/TaskRewards.wasm

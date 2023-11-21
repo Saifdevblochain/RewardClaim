@@ -1,0 +1,8 @@
+{
+  "goerli": {
+    "TaskRewards": {
+      "address": "0x7E4B4bf292fFD27498f0D4aa5F8291c11116C436",
+      "startBlock": 10081919
+    }
+  }
+}

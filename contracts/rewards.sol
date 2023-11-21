@@ -5,9 +5,7 @@ import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol
 import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
 import {ReentrancyGuard} from "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
 import {ECDSA} from "@openzeppelin/contracts/utils/cryptography/ECDSA.sol";
-import {MessageHashUtils} from  "@openzeppelin/contracts/utils/cryptography/MessageHashUtils.sol";
-
-
+import {MessageHashUtils} from "@openzeppelin/contracts/utils/cryptography/MessageHashUtils.sol";
 
 contract TaskRewards is Ownable, ReentrancyGuard {
     /// @notice Thrown when signature is invalid
@@ -28,25 +26,34 @@ contract TaskRewards is Ownable, ReentrancyGuard {
     /// @notice Thrown when updating with the same value as previously stored
     error IdenticalValue();
 
+    /// @notice Thrown when deadline time of signature is over
+    error DeadlineExpired();
+
+    /// @notice Thrown when Redeem is disabled
+    error RedeemNotEnable();
+
     IERC20 public tomiToken;
     using SafeERC20 for IERC20;
 
-    /// @notice Returns the address of signerWallet
+    /// @notice The address of signerWallet
     address private signerWallet;
 
-    /// @notice Returns the address of rewardWallet
+    /// @notice The address of rewardWallet
     address public rewardWallet;
 
-    /// @notice Returns the cooldownPeriod (in second)
+    /// @notice The cooldownPeriod (in second)
     uint256 public cooldownPeriod;
 
-    /// @notice mapping gives last redeem time of the address
+    /// @notice The redeem enabled or not
+    bool public enableRedeem = true;
+
+    /// @notice Gives last redeem time of the address
     mapping(address => uint256) public lastRedeemTime;
 
-    /// @notice mapping gives the amount redeemed by the address
+    /// @notice Gives the amount redeemed by the address
     mapping(address => uint256) public userRedeemHistory;
 
-    /// @notice mapping gives the info of the signature
+    /// @notice Gives the info of the signature
     mapping(bytes32 => bool) private _isUsed;
 
     event TokensDeposited(address indexed depositor, uint256 amount);
@@ -56,17 +63,22 @@ contract TaskRewards is Ownable, ReentrancyGuard {
         uint256 oldCoolDownPeriod,
         uint256 newCooldownPeriod
     );
-
-    event RewardWalletUpdated(
-        address oldRewardWallet,
-        address newRewardWallet
-    );
+    event EnableRedeemUpdated(bool oldAccess, bool newAccess);
+    event RewardWalletUpdated(address oldRewardWallet, address newRewardWallet);
     event SignerUpdated(address oldSigner, address newSigner);
 
-    /// @notice restricts when updating wallet/contract address to zero address
+    /// @notice Restricts when updating wallet/contract address to zero address
     modifier checkZeroAddress(address which) {
         if (which == address(0)) {
             revert ZeroAddress();
+        }
+        _;
+    }
+
+    /// @notice Restricts when Redeem is disabled
+    modifier canRedeem() {
+        if (!enableRedeem) {
+            revert RedeemNotEnable();
         }
         _;
     }
@@ -91,25 +103,28 @@ contract TaskRewards is Ownable, ReentrancyGuard {
     }
 
     /// @notice Redeems tomi tokens
-    /// @param time The expiry time of the signature
+    /// @param deadline The expiry time of the signature
     /// @param amount The amount of tomi tokens
     /// @param v The `v` signature parameter
     /// @param r The `r` signature parameter
     /// @param s The `s` signature parameter
     function redeemTokens(
-        uint256 time,
+        uint256 deadline,
         uint256 amount,
         uint8 v,
         bytes32 r,
         bytes32 s
-    ) external nonReentrant {
+    ) external canRedeem nonReentrant {
+        if (block.timestamp > deadline) {
+            revert DeadlineExpired();
+        }
         if (lastRedeemTime[msg.sender] + cooldownPeriod > block.timestamp) {
             revert CoolPeriodNotOver();
         }
         if (amount == 0) {
             revert ZeroValue();
         }
-        _verifySignature(msg.sender, amount, time, v, r, s);
+        _verifySignature(msg.sender, amount, deadline, v, r, s);
         userRedeemHistory[msg.sender] += amount;
         lastRedeemTime[msg.sender] = block.timestamp;
         tomiToken.safeTransferFrom(rewardWallet, msg.sender, amount);
@@ -137,9 +152,7 @@ contract TaskRewards is Ownable, ReentrancyGuard {
 
     /// @notice Updates reward wallet
     /// @param newRewardWallet The new reward wallet address
-    function updateRewardWallet(
-        address newRewardWallet
-    ) external onlyOwner {
+    function updateRewardWallet(address newRewardWallet) external onlyOwner {
         address oldRewardWallet = rewardWallet;
         if (newRewardWallet == address(0)) {
             revert ZeroValue();
@@ -152,6 +165,17 @@ contract TaskRewards is Ownable, ReentrancyGuard {
             newRewardWallet: newRewardWallet
         });
         rewardWallet = newRewardWallet;
+    }
+
+    /// @notice Changes access of redeem tokens
+    /// @param enabled The new access decision
+    function updateEnableRedeem(bool enabled) external onlyOwner {
+        bool oldAccess = enableRedeem;
+        if (oldAccess == enabled) {
+            revert IdenticalValue();
+        }
+        emit EnableRedeemUpdated({oldAccess: oldAccess, newAccess: enabled});
+        enableRedeem = enabled;
     }
 
     /// @notice Changes signer wallet address
@@ -171,18 +195,23 @@ contract TaskRewards is Ownable, ReentrancyGuard {
     function _verifySignature(
         address redeemer,
         uint256 amount,
-        uint256 time,
+        uint256 deadline,
         uint8 v,
         bytes32 r,
         bytes32 s
     ) internal {
-        bytes32 hash = keccak256(abi.encodePacked(redeemer, amount, time));
+        bytes32 hash = keccak256(abi.encodePacked(redeemer, amount, deadline));
         if (_isUsed[hash]) {
             revert HashUsed();
         }
         if (
             signerWallet !=
-            ECDSA.recover(MessageHashUtils.toEthSignedMessageHash(hash), v, r, s)
+            ECDSA.recover(
+                MessageHashUtils.toEthSignedMessageHash(hash),
+                v,
+                r,
+                s
+            )
         ) {
             revert InvalidSignature();
         }
